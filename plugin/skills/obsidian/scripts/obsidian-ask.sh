@@ -3,7 +3,8 @@
 
 set -e
 
-VAULT_DIR="${OBSIDIAN_VAULT_DIR:-$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VAULT_DIR="$("${SCRIPT_DIR}/obsidian-vault.sh")"
 
 QUESTION="$*"
 

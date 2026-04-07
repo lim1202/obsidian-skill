@@ -28,18 +28,17 @@ Claude Code skill for interacting with Obsidian vault via slash commands.
 
 ## Configuration
 
-Set your vault path via environment variable:
+The vault path is auto-detected in this order:
 
+1. `OBSIDIAN_VAULT_DIR` environment variable
+2. Saved path at `~/.obsidian-skill/config`
+3. Common vault locations (iCloud Obsidian, ~/Obsidian, etc.)
+4. **Prompt user** if no vault found, then save to `~/.obsidian-skill/config`
+
+To set manually:
 ```bash
-export OBSIDIAN_VAULT_DIR=~/Library/Mobile\ Documents/iCloud~md~obsidian/Documents/Notes
+export OBSIDIAN_VAULT_DIR=~/obsidian/my-vault
 ```
-
-Or for local vault:
-```bash
-export OBSIDIAN_VAULT_DIR=~/obsidian/vault
-```
-
-Default vault path: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes`
 
 ## Prerequisites
 

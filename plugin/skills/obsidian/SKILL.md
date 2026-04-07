@@ -44,7 +44,7 @@ Lists notes in a folder (default: root).
 ---
 
 **Notes:**
-- Vault path: Set via `OBSIDIAN_VAULT_DIR` environment variable (default: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes`)
+- Vault path: Auto-detected (OBSIDIAN_VAULT_DIR env, ~/.obsidian-skill/config, or common paths), prompts if not found
 - `<path>` is relative to the vault root (e.g., `Work/project-x.md`)
 - The ask command uses AI to synthesize answers from your notes
 - Obsidian CLI (`obsidian`) must be installed and in PATH

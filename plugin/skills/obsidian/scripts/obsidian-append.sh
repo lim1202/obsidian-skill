@@ -1,9 +1,10 @@
-#\!/bin/bash
+#!/bin/bash
 # obsidian-append.sh — /obsidian append implementation
 
 set -e
 
-VAULT_DIR="${VAULT_DIR:-$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VAULT_DIR="$("${SCRIPT_DIR}/obsidian-vault.sh")"
 
 # Parse path and content (separated by first space after path)
 if [ -z "$1" ]; then
