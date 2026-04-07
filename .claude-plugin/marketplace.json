@@ -15,7 +15,7 @@
       "source": "./",
       "strict": false,
       "skills": [
-        "./skills/obsidian"
+        "./plugin/skills/obsidian"
       ]
     }
   ]
