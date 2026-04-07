@@ -1,0 +1,6 @@
+{
+  "name": "obsidian-skill",
+  "description": "Claude Code skill for interacting with Obsidian vault",
+  "version": "1.0.0",
+  "manifest": "plugin/manifest.json"
+}
