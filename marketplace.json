@@ -1,6 +1,11 @@
 {
   "name": "obsidian-skill",
-  "description": "Claude Code skill for interacting with Obsidian vault",
-  "version": "1.0.0",
-  "manifest": "plugin/manifest.json"
+  "version": "2.0.0",
+  "description": "Claude Code skill for Obsidian vault interaction via official CLI (v1.12+)",
+  "skills": [
+    {
+      "name": "obsidian",
+      "path": "plugin/skills/obsidian/SKILL.md"
+    }
+  ]
 }
