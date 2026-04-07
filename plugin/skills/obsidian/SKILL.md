@@ -124,6 +124,7 @@ obsidian daily:append content="## $(date '+%H:%M') Update
 3. **`move` requires `.md`** — include extension in target path
 4. **Pipe-friendly** — output works with `grep`, `jq`, `awk`
 5. **JSON search** — `format=json` returns array for scripting
+6. **Sandbox mode** — CLI needs filesystem access; use `dangerouslyDisableSandbox: true` when calling via Bash tool
 
 ## Troubleshooting
 
@@ -133,6 +134,7 @@ obsidian daily:append content="## $(date '+%H:%M') Update
 | Command not found | Re-enable CLI in Settings, restart terminal |
 | Wrong vault | Pass vault name as first arg: `obsidian "Vault Name" command` |
 | Windows Git Bash failures | Create wrapper for `Obsidian.com` |
+| Sandbox blocks access | Set `dangerouslyDisableSandbox: true` in Bash tool |
 
 ## Full Reference
 
