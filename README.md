@@ -26,10 +26,24 @@ Claude Code skill for interacting with Obsidian vault via slash commands.
 | `/obsidian append <path> <content>` | Append content to an existing note |
 | `/obsidian list [folder]` | List notes in a folder |
 
+## Configuration
+
+Set your vault path via environment variable:
+
+```bash
+export OBSIDIAN_VAULT_DIR=~/Library/Mobile\ Documents/iCloud~md~obsidian/Documents/Notes
+```
+
+Or for local vault:
+```bash
+export OBSIDIAN_VAULT_DIR=~/obsidian/vault
+```
+
+Default vault path: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes`
+
 ## Prerequisites
 
 - [Obsidian CLI](https://github.com/obsidianmd/obsidian-cli) installed and in PATH
-- Vault path: `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes`
 
 ## Testing
 

@@ -3,7 +3,7 @@
 
 set -e
 
-VAULT_DIR="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes"
+VAULT_DIR="${OBSIDIAN_VAULT_DIR:-$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes}"
 
 QUESTION="$*"
 
