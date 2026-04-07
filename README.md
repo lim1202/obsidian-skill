@@ -1,54 +1,44 @@
 # Obsidian Skill
 
-Claude Code skill for interacting with Obsidian vault via slash commands.
+A Claude Code skill for interacting with Obsidian vaults via the official Obsidian CLI (v1.12+).
 
 ## Installation
 
-1. Clone this repository
-2. Add to Claude Code `settings.json`:
+### Claude Code Marketplace
 
-```json
-{
-  "enabledPlugins": {
-    "obsidian-skill": true
-  }
-}
+```bash
+/plugin marketplace add https://github.com/<your-username>/obsidian-skill
+/plugin install obsidian-skill
 ```
 
-3. Run `/reload-plugins`
+### Direct Plugin Load
 
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `/obsidian ask <question>` | Search vault and answer questions using AI |
-| `/obsidian new <title>` | Create a new note |
-| `/obsidian append <path> <content>` | Append content to an existing note |
-| `/obsidian list [folder]` | List notes in a folder |
-
-## Configuration
-
-The vault path is auto-detected in this order:
-
-1. `OBSIDIAN_VAULT_DIR` environment variable
-2. Saved path at `~/.obsidian-skill/config`
-3. Common vault locations (iCloud Obsidian, ~/Obsidian, etc.)
-4. **Prompt user** if no vault found, then save to `~/.obsidian-skill/config`
-
-To set manually:
 ```bash
-export OBSIDIAN_VAULT_DIR=~/obsidian/my-vault
+git clone https://github.com/<your-username>/obsidian-skill
+claude --plugin-dir ./obsidian-skill
 ```
 
 ## Prerequisites
 
-- [Obsidian CLI](https://github.com/obsidianmd/obsidian-cli) installed and in PATH
+- Obsidian Desktop v1.12.0+ (CLI released February 2026)
+- CLI enabled in Obsidian Settings -> Command line interface
+- Obsidian app running (CLI communicates via IPC)
 
-## Testing
+## Usage
 
-```bash
-bash tests/orchestrator.test.sh
-bash tests/obsidian-new.test.sh
-bash tests/obsidian-append.test.sh
-bash tests/obsidian-list.test.sh
-```
+The skill activates automatically when you mention Obsidian or vault operations. Examples:
+
+- "Search my vault for meeting notes"
+- "Create a note called Project Alpha"
+- "Append to today's daily note: completed review"
+- "What tasks are in my vault?"
+
+Claude will use the Obsidian CLI to execute these operations.
+
+## Commands Covered
+
+See `plugin/skills/obsidian/references/command-reference.md` for the complete list of 130+ commands.
+
+## License
+
+MIT
