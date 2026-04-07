@@ -1,0 +1,22 @@
+{
+  "name": "obsidian-skill",
+  "owner": {
+    "name": "lim",
+    "email": "lim@example.com"
+  },
+  "metadata": {
+    "description": "Claude Code skill for interacting with Obsidian vault via slash commands",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "obsidian-skill",
+      "description": "Interact with Obsidian vault via /obsidian ask, new, append, list commands",
+      "source": "./plugin",
+      "strict": false,
+      "skills": [
+        "./plugin/skills/obsidian"
+      ]
+    }
+  ]
+}
