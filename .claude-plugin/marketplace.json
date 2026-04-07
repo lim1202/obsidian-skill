@@ -12,10 +12,10 @@
     {
       "name": "obsidian-skill",
       "description": "Interact with Obsidian vault via /obsidian ask, new, append, list commands",
-      "source": "./plugin",
+      "source": "./",
       "strict": false,
       "skills": [
-        "./plugin/skills/obsidian"
+        "./skills/obsidian"
       ]
     }
   ]
