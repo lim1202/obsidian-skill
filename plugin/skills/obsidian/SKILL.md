@@ -1,3 +1,8 @@
+---
+name: obsidian
+description: Interact with your Obsidian vault via conversational AI. Use when working with Obsidian notes, creating notes, searching vault content, or managing knowledge base. Commands: /obsidian ask (search and answer questions), /obsidian new (create notes), /obsidian append (add content), /obsidian list (browse notes).
+---
+
 # obsidian
 
 Interact with your Obsidian vault via conversational AI.
@@ -42,3 +47,4 @@ Lists notes in a folder (default: root).
 - Commands operate on the vault at `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes`
 - `<path>` is relative to the vault root (e.g., `Work/project-x.md`)
 - The ask command uses AI to synthesize answers from your notes
+- Obsidian CLI (`obsidian`) must be installed and in PATH
