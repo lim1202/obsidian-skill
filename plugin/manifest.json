@@ -1,5 +1,5 @@
 {
   "name": "obsidian-skill",
-  "version": "1.0.0",
-  "description": "Claude Code skill for interacting with Obsidian vault via slash commands"
+  "version": "2.0.0",
+  "description": "Claude Code skill for Obsidian vault interaction via official CLI (v1.12+)"
 }
