@@ -1,10 +1,13 @@
 name: Release
 
+# Manually triggered. Fill in version tag (e.g. v2.0.1) and run.
+# Creates: updated version in manifest files, git commit, git tag, pushed to origin.
+# After pushing, go to GitHub Releases and create release from the new tag.
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v2.0.1)'
+        description: 'Version tag (e.g. v2.0.1)'
         required: true
         type: string
 
@@ -16,17 +19,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate version tag format
+      - name: Validate version format
         run: |
           if ! echo "${{ inputs.version }}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "ERROR: Version must match format vMAJOR.MINOR.PATCH (e.g., v2.0.1)"
-            exit 1
-          fi
-
-      - name: Check version doesn't already exist
-        run: |
-          if git tag | grep -q "^${{ inputs.version }}$"; then
-            echo "ERROR: Tag ${{ inputs.version }} already exists"
+            echo "ERROR: version must match vMAJOR.MINOR.PATCH (e.g. v2.0.1)"
             exit 1
           fi
 
@@ -67,47 +63,25 @@ jobs:
             fs.writeFileSync('CHANGELOG.md', lines.join('\n'));
             console.log('Updated CHANGELOG.md');
 
-      - name: Show diff of version files
-        run: git diff plugin/manifest.json marketplace.json .claude-plugin/marketplace.json CHANGELOG.md
+      - name: Show diff
+        run: git diff --stat
 
       - name: Commit and tag
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add plugin/manifest.json marketplace.json .claude-plugin/marketplace.json CHANGELOG.md
-          git commit -m "chore: bump version to ${{ inputs.version }}"
+          git commit -m "chore: release ${{ inputs.version }}"
           git tag "${{ inputs.version }}"
           echo "Created commit and tag: ${{ inputs.version }}"
 
       - name: Push
-        run: git push origin main --tags
-
-      - name: Create GitHub Release
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const inputVersion = '${{ inputs.version }}';
-            const content = fs.readFileSync('CHANGELOG.md', 'utf8');
-            const pattern = new RegExp(`##\\s+\\[${inputVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]\\s+-\\s+\\d{4}-\\d{2}-\\d{2}(.*?)(?=##\\s+\\[|$)`, 's');
-            const match = content.match(pattern);
-            const body = match ? match[1].trim() : 'See CHANGELOG.md for details.';
-            fs.writeFileSync('.release_body', body);
-            console.log('Extracted release notes');
-          result-path: .release_body
-
-      - name: Publish GitHub Release
         run: |
-          gh release create "${{ inputs.version }}" \
-            --title "${{ inputs.version }}" \
-            --notes-file .release_body \
-            --latest
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git push origin main --tags
+          echo "Pushed commit and tags."
 
-      - name: Summary
+      - name: Next steps
         run: |
-          echo "## Release Summary"
-          echo "- Tag: ${{ inputs.version }}"
-          echo "- Commit: $(git rev-parse HEAD)"
-          echo "- GitHub Release: https://github.com/${{ github.repository }}/releases/tag/${{ inputs.version }}"
+          echo ""
+          echo "Done! Now go to GitHub Releases to create the release:"
+          echo "https://github.com/lim1202/obsidian-skill/releases/new?tag=${{ inputs.version }}"
