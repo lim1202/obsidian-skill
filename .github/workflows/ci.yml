@@ -16,41 +16,35 @@ jobs:
       - name: Validate plugin manifest
         run: |
           echo "=== Validating plugin/manifest.json ==="
-          python3 -c "
-import json, sys
-with open('plugin/manifest.json') as f:
-    m = json.load(f)
-            required = ['name', 'version', 'description', 'skills']
-            for key in required:
-                if key not in m:
-                    print(f'Missing required field: {key}')
-                    sys.exit(1)
-            print(f'name: {m[\"name\"]}')
-            print(f'version: {m[\"version\"]}')
-            for skill in m['skills']:
-                path = skill['path']
-                import os
-                if not os.path.exists(path):
-                    print(f'ERROR: Skill path {path} does not exist')
-                    sys.exit(1)
-                print(f'OK: {path}')
-          "
+          printf '%s\n' 'import json, sys, os' > /tmp/validate_manifest.py
+          printf '%s\n' "with open('plugin/manifest.json') as f:" >> /tmp/validate_manifest.py
+          printf '%s\n' '    m = json.load(f)' >> /tmp/validate_manifest.py
+          printf '%s\n' "required = ['name', 'version', 'description', 'skills']" >> /tmp/validate_manifest.py
+          printf '%s\n' 'for k in required:' >> /tmp/validate_manifest.py
+          printf '%s\n' '    if k not in m:' >> /tmp/validate_manifest.py
+          printf '%s\n' '        print(f"Missing: {k}")' >> /tmp/validate_manifest.py
+          printf '%s\n' '        sys.exit(1)' >> /tmp/validate_manifest.py
+          printf '%s\n' 'print(f\'name: {m["name"]}\')' >> /tmp/validate_manifest.py
+          printf '%s\n' 'print(f\'version: {m["version"]}\')' >> /tmp/validate_manifest.py
+          printf '%s\n' "for s in m['skills']:" >> /tmp/validate_manifest.py
+          printf '%s\n' '    p = s["path"]' >> /tmp/validate_manifest.py
+          printf '%s\n' '    if not os.path.exists(p):' >> /tmp/validate_manifest.py
+          printf '%s\n' '        print(f"ERROR: {p} missing")' >> /tmp/validate_manifest.py
+          printf '%s\n' '        sys.exit(1)' >> /tmp/validate_manifest.py
+          printf '%s\n' '    print(f"OK: {p}")' >> /tmp/validate_manifest.py
+          python3 /tmp/validate_manifest.py
 
       - name: Validate marketplace.json
         run: |
           echo "=== Validating marketplace.json ==="
-          python3 -c "
-import json, sys
-with open('marketplace.json') as f:
-            m = json.load(f)
-            required = ['name', 'version', 'description', 'skills']
-            for key in required:
-                if key not in m:
-                    print(f'Missing required field: {key}')
-                    sys.exit(1)
-            print(f'name: {m[\"name\"]}')
-            print(f'version: {m[\"version\"]}')
-          "
+          printf '%s\n' 'import json, sys' > /tmp/validate_marketplace.py
+          printf '%s\n' "with open('marketplace.json') as f: m = json.load(f)" >> /tmp/validate_marketplace.py
+          printf '%s\n' "required = ['name', 'version', 'description', 'skills']" >> /tmp/validate_marketplace.py
+          printf '%s\n' 'for k in required:' >> /tmp/validate_marketplace.py
+          printf '%s\n' '    if k not in m: print(f"Missing: {k}"); sys.exit(1)' >> /tmp/validate_marketplace.py
+          printf '%s\n' 'print(f\'name: {m["name"]}\')' >> /tmp/validate_marketplace.py
+          printf '%s\n' 'print(f\'version: {m["version"]}\')' >> /tmp/validate_marketplace.py
+          python3 /tmp/validate_marketplace.py
 
       - name: Validate SKILL.md structure
         run: |
@@ -73,7 +67,6 @@ with open('marketplace.json') as f:
       - name: Check for broken markdown links
         run: |
           echo "=== Checking for common issues in markdown files ==="
-          # Check for relative paths that might break
           grep -rn '\[.*\](\.\./' --include="*.md" . || echo "No ../ relative links found"
           echo "OK: Link check complete"
 
@@ -90,7 +83,6 @@ with open('marketplace.json') as f:
       - name: Verify sandbox warning is prominent
         run: |
           echo "=== Verifying sandbox warning prominence ==="
-          # The warning should appear before "Syntax" section
           sandbox_line=$(grep -n "Sandbox Mode" plugin/skills/obsidian/SKILL.md | head -1 | cut -d: -f1)
           syntax_line=$(grep -n "## Syntax" plugin/skills/obsidian/SKILL.md | head -1 | cut -d: -f1)
           if [ -z "$sandbox_line" ]; then
@@ -131,25 +123,16 @@ with open('marketplace.json') as f:
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           NEW_VERSION="2.0.0+${SHORT_SHA}"
           echo "Bumping version to $NEW_VERSION"
-
-          python3 -c "
-import json
-
-files = [
-    'plugin/manifest.json',
-    'marketplace.json',
-    '.claude-plugin/marketplace.json'
-]
-
-for filepath in files:
-    with open(filepath) as f:
-        m = json.load(f)
-    old_version = m.get('version', 'unknown')
-    m['version'] = '$NEW_VERSION'
-    with open(filepath, 'w') as f:
-        json.dump(m, f, indent=2)
-    print(f'{filepath}: {old_version} -> $NEW_VERSION')
-"
+          printf '%s\n' 'import json, sys' > /tmp/bump_version.py
+          printf '%s\n' 'v = sys.argv[1]' >> /tmp/bump_version.py
+          printf '%s\n' "files = ['plugin/manifest.json', 'marketplace.json', '.claude-plugin/marketplace.json']" >> /tmp/bump_version.py
+          printf '%s\n' 'for path in files:' >> /tmp/bump_version.py
+          printf '%s\n' '    with open(path) as f: m = json.load(f)' >> /tmp/bump_version.py
+          printf '%s\n' '    old = m.get("version", "?")' >> /tmp/bump_version.py
+          printf '%s\n' '    m["version"] = v' >> /tmp/bump_version.py
+          printf '%s\n' '    with open(path, "w") as f: json.dump(m, f, indent=2)' >> /tmp/bump_version.py
+          printf '%s\n' '    print(f"{path}: {old} -> {v}")' >> /tmp/bump_version.py
+          python3 /tmp/bump_version.py "$NEW_VERSION"
 
       - name: Check if version changed
         id: check

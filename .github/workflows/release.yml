@@ -35,67 +35,32 @@ jobs:
           VERSION="${{ inputs.version }}"
           VVERSION="${VERSION#v}"
           echo "Updating version to $VVERSION"
-
-          python3 << 'PYEOF'
-import json
-import sys
-
-version = sys.argv[1]
-files = [
-    "plugin/manifest.json",
-    "marketplace.json",
-    ".claude-plugin/marketplace.json",
-]
-
-for filepath in files:
-    with open(filepath) as f:
-        m = json.load(f)
-    old = m.get("version", "?")
-    m["version"] = version
-    with open(filepath, "w") as f:
-        json.dump(m, f, indent=2)
-    print(f"{filepath}: {old} -> {version}")
-PYEOF
-        env:
-          VERSION: ${{ inputs.version }}
+          printf '%s\n' 'import json, sys' > /tmp/update_version.py
+          printf '%s\n' 'v = sys.argv[1]' >> /tmp/update_version.py
+          printf '%s\n' "files = ['plugin/manifest.json', 'marketplace.json', '.claude-plugin/marketplace.json']" >> /tmp/update_version.py
+          printf '%s\n' 'for path in files:' >> /tmp/update_version.py
+          printf '%s\n' '    with open(path) as f: m = json.load(f)' >> /tmp/update_version.py
+          printf '%s\n' '    m["version"] = v' >> /tmp/update_version.py
+          printf '%s\n' '    with open(path, "w") as f: json.dump(m, f, indent=2)' >> /tmp/update_version.py
+          printf '%s\n' '    print(f"Updated {path}")' >> /tmp/update_version.py
+          python3 /tmp/update_version.py "$VVERSION"
 
       - name: Update CHANGELOG.md
         run: |
           VERSION="${{ inputs.version }}"
           TODAY=$(date '+%Y-%m-%d')
-
-          python3 << 'PYEOF'
-import sys
-import re
-
-version = sys.argv[1]
-today = sys.argv[2]
-
-with open("CHANGELOG.md") as f:
-    content = f.read()
-
-new_entry = f"""## [{version}] - {today}
-
-### Added
-
-- Release {version}
-
-"""
-
-lines = content.split("\n")
-insert_idx = 1
-for i, line in enumerate(lines):
-    if i > 0 and line.strip() == "":
-        insert_idx = i
-        break
-
-lines.insert(insert_idx, new_entry)
-with open("CHANGELOG.md", "w") as f:
-    f.write("\n".join(lines))
-print("Updated CHANGELOG.md")
-PYEOF
-        env:
-          VERSION: ${{ inputs.version }}
+          printf '%s\n' 'import re, sys' > /tmp/update_changelog.py
+          printf '%s\n' 'version = sys.argv[1]' >> /tmp/update_changelog.py
+          printf '%s\n' 'today = sys.argv[2]' >> /tmp/update_changelog.py
+          printf '%s\n' "entry = '## [' + version + '] - ' + today + chr(10) + chr(10) + '### Added' + chr(10) + chr(10) + '- Release ' + version + chr(10) + chr(10)" >> /tmp/update_changelog.py
+          printf '%s\n' 'with open("CHANGELOG.md") as f: lines = f.read().split(chr(10))' >> /tmp/update_changelog.py
+          printf '%s\n' 'idx = 1' >> /tmp/update_changelog.py
+          printf '%s\n' 'for i, line in enumerate(lines):' >> /tmp/update_changelog.py
+          printf '%s\n' '    if i > 0 and line.strip() == "": idx = i; break' >> /tmp/update_changelog.py
+          printf '%s\n' 'lines.insert(idx, entry)' >> /tmp/update_changelog.py
+          printf '%s\n' 'with open("CHANGELOG.md", "w") as f: f.write(chr(10).join(lines))' >> /tmp/update_changelog.py
+          printf '%s\n' 'print("Updated CHANGELOG.md")' >> /tmp/update_changelog.py
+          python3 /tmp/update_changelog.py "$VERSION" "$TODAY"
 
       - name: Show diff of version files
         run: |
@@ -118,26 +83,15 @@ PYEOF
       - name: Create GitHub Release
         run: |
           VERSION="${{ inputs.version }}"
-
-          python3 << 'PYEOF'
-import sys
-import re
-
-version = sys.argv[1]
-
-with open("CHANGELOG.md") as f:
-    content = f.read()
-
-pattern = r"##\s+\[" + re.escape(version) + r"\]\s+-\s+\d{4}-\d{2}-\d{2}(.*?)(?=##\s+\[|$)"
-match = re.search(pattern, content, re.DOTALL)
-body = match.group(1).strip() if match else "See CHANGELOG.md for details."
-with open(".release_body", "w") as f:
-    f.write(body)
-print("Extracted release notes")
-PYEOF
-        env:
-          VERSION: ${{ inputs.version }}
-
+          printf '%s\n' 'import re, sys' > /tmp/create_release.py
+          printf '%s\n' 'version = sys.argv[1]' >> /tmp/create_release.py
+          printf '%s\n' 'with open("CHANGELOG.md") as f: content = f.read()' >> /tmp/create_release.py
+          printf '%s\n' "pattern = '##\\s+\\[' + re.escape(version) + '\\]\\s+-\\s+\\d{4}-\\d{2}-\\d{2}(.*?)(?=##\\s+\\[|$)'" >> /tmp/create_release.py
+          printf '%s\n' 'match = re.search(pattern, content, re.DOTALL)' >> /tmp/create_release.py
+          printf '%s\n' 'body = match.group(1).strip() if match else "See CHANGELOG.md for details."' >> /tmp/create_release.py
+          printf '%s\n' 'with open(".release_body", "w") as f: f.write(body)' >> /tmp/create_release.py
+          printf '%s\n' 'print("Extracted release notes")' >> /tmp/create_release.py
+          python3 /tmp/create_release.py "$VERSION"
           gh release create "${{ inputs.version }}" \
             --title "${{ inputs.version }}" \
             --notes-file .release_body \
