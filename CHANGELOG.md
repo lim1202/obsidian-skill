@@ -1,4 +1,11 @@
 # Changelog
+## [v2.0.0] - 2026-04-09
+
+### Added
+
+- Release v2.0.0
+
+
 
 All notable changes to this project will be documented in this file.
 
