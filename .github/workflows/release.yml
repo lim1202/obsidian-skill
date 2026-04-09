@@ -31,40 +31,44 @@ jobs:
           fi
 
       - name: Update version in all manifest files
-        run: |
-          VERSION="${{ inputs.version }}"
-          VVERSION="${VERSION#v}"
-          echo "Updating version to $VVERSION"
-          printf '%s\n' 'import json, sys' > /tmp/update_version.py
-          printf '%s\n' 'v = sys.argv[1]' >> /tmp/update_version.py
-          printf '%s\n' "files = ['plugin/manifest.json', 'marketplace.json', '.claude-plugin/marketplace.json']" >> /tmp/update_version.py
-          printf '%s\n' 'for path in files:' >> /tmp/update_version.py
-          printf '%s\n' '    with open(path) as f: m = json.load(f)' >> /tmp/update_version.py
-          printf '%s\n' '    m["version"] = v' >> /tmp/update_version.py
-          printf '%s\n' '    with open(path, "w") as f: json.dump(m, f, indent=2)' >> /tmp/update_version.py
-          printf '%s\n' '    print(f"Updated {path}")' >> /tmp/update_version.py
-          python3 /tmp/update_version.py "$VVERSION"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const inputVersion = '${{ inputs.version }}';
+            const newVersion = inputVersion.startsWith('v') ? inputVersion.substring(1) : inputVersion;
+            const files = [
+              'plugin/manifest.json',
+              'marketplace.json',
+              '.claude-plugin/marketplace.json'
+            ];
+            for (const file of files) {
+              const m = JSON.parse(fs.readFileSync(file, 'utf8'));
+              m.version = newVersion;
+              fs.writeFileSync(file, JSON.stringify(m, null, 2) + '\n');
+              console.log(`Updated ${file} to ${newVersion}`);
+            }
 
       - name: Update CHANGELOG.md
-        run: |
-          VERSION="${{ inputs.version }}"
-          TODAY=$(date '+%Y-%m-%d')
-          printf '%s\n' 'import re, sys' > /tmp/update_changelog.py
-          printf '%s\n' 'version = sys.argv[1]' >> /tmp/update_changelog.py
-          printf '%s\n' 'today = sys.argv[2]' >> /tmp/update_changelog.py
-          printf '%s\n' "entry = '## [' + version + '] - ' + today + chr(10) + chr(10) + '### Added' + chr(10) + chr(10) + '- Release ' + version + chr(10) + chr(10)" >> /tmp/update_changelog.py
-          printf '%s\n' 'with open("CHANGELOG.md") as f: lines = f.read().split(chr(10))' >> /tmp/update_changelog.py
-          printf '%s\n' 'idx = 1' >> /tmp/update_changelog.py
-          printf '%s\n' 'for i, line in enumerate(lines):' >> /tmp/update_changelog.py
-          printf '%s\n' '    if i > 0 and line.strip() == "": idx = i; break' >> /tmp/update_changelog.py
-          printf '%s\n' 'lines.insert(idx, entry)' >> /tmp/update_changelog.py
-          printf '%s\n' 'with open("CHANGELOG.md", "w") as f: f.write(chr(10).join(lines))' >> /tmp/update_changelog.py
-          printf '%s\n' 'print("Updated CHANGELOG.md")' >> /tmp/update_changelog.py
-          python3 /tmp/update_changelog.py "$VERSION" "$TODAY"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const inputVersion = '${{ inputs.version }}';
+            const today = new Date().toISOString().split('T')[0];
+            const entry = `## [${inputVersion}] - ${today}\n\n### Added\n\n- Release ${inputVersion}\n\n`;
+            const content = fs.readFileSync('CHANGELOG.md', 'utf8');
+            const lines = content.split('\n');
+            let insertIdx = 1;
+            for (let i = 1; i < lines.length; i++) {
+              if (lines[i].trim() === '') { insertIdx = i; break; }
+            }
+            lines.splice(insertIdx, 0, entry);
+            fs.writeFileSync('CHANGELOG.md', lines.join('\n'));
+            console.log('Updated CHANGELOG.md');
 
       - name: Show diff of version files
-        run: |
-          git diff plugin/manifest.json marketplace.json .claude-plugin/marketplace.json CHANGELOG.md
+        run: git diff plugin/manifest.json marketplace.json .claude-plugin/marketplace.json CHANGELOG.md
 
       - name: Commit and tag
         run: |
@@ -76,22 +80,24 @@ jobs:
           echo "Created commit and tag: ${{ inputs.version }}"
 
       - name: Push
-        run: |
-          git push origin main --tags
-          echo "Pushed commit and tags to origin"
+        run: git push origin main --tags
 
       - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const inputVersion = '${{ inputs.version }}';
+            const content = fs.readFileSync('CHANGELOG.md', 'utf8');
+            const pattern = new RegExp(`##\\s+\\[${inputVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]\\s+-\\s+\\d{4}-\\d{2}-\\d{2}(.*?)(?=##\\s+\\[|$)`, 's');
+            const match = content.match(pattern);
+            const body = match ? match[1].trim() : 'See CHANGELOG.md for details.';
+            fs.writeFileSync('.release_body', body);
+            console.log('Extracted release notes');
+          result-path: .release_body
+
+      - name: Publish GitHub Release
         run: |
-          VERSION="${{ inputs.version }}"
-          printf '%s\n' 'import re, sys' > /tmp/create_release.py
-          printf '%s\n' 'version = sys.argv[1]' >> /tmp/create_release.py
-          printf '%s\n' 'with open("CHANGELOG.md") as f: content = f.read()' >> /tmp/create_release.py
-          printf '%s\n' "pattern = '##\\s+\\[' + re.escape(version) + '\\]\\s+-\\s+\\d{4}-\\d{2}-\\d{2}(.*?)(?=##\\s+\\[|$)'" >> /tmp/create_release.py
-          printf '%s\n' 'match = re.search(pattern, content, re.DOTALL)' >> /tmp/create_release.py
-          printf '%s\n' 'body = match.group(1).strip() if match else "See CHANGELOG.md for details."' >> /tmp/create_release.py
-          printf '%s\n' 'with open(".release_body", "w") as f: f.write(body)' >> /tmp/create_release.py
-          printf '%s\n' 'print("Extracted release notes")' >> /tmp/create_release.py
-          python3 /tmp/create_release.py "$VERSION"
           gh release create "${{ inputs.version }}" \
             --title "${{ inputs.version }}" \
             --notes-file .release_body \

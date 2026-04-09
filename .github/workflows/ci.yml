@@ -14,37 +14,43 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate plugin manifest
-        run: |
-          echo "=== Validating plugin/manifest.json ==="
-          printf '%s\n' 'import json, sys, os' > /tmp/validate_manifest.py
-          printf '%s\n' "with open('plugin/manifest.json') as f:" >> /tmp/validate_manifest.py
-          printf '%s\n' '    m = json.load(f)' >> /tmp/validate_manifest.py
-          printf '%s\n' "required = ['name', 'version', 'description', 'skills']" >> /tmp/validate_manifest.py
-          printf '%s\n' 'for k in required:' >> /tmp/validate_manifest.py
-          printf '%s\n' '    if k not in m:' >> /tmp/validate_manifest.py
-          printf '%s\n' '        print(f"Missing: {k}")' >> /tmp/validate_manifest.py
-          printf '%s\n' '        sys.exit(1)' >> /tmp/validate_manifest.py
-          printf '%s\n' 'print(f\'name: {m["name"]}\')' >> /tmp/validate_manifest.py
-          printf '%s\n' 'print(f\'version: {m["version"]}\')' >> /tmp/validate_manifest.py
-          printf '%s\n' "for s in m['skills']:" >> /tmp/validate_manifest.py
-          printf '%s\n' '    p = s["path"]' >> /tmp/validate_manifest.py
-          printf '%s\n' '    if not os.path.exists(p):' >> /tmp/validate_manifest.py
-          printf '%s\n' '        print(f"ERROR: {p} missing")' >> /tmp/validate_manifest.py
-          printf '%s\n' '        sys.exit(1)' >> /tmp/validate_manifest.py
-          printf '%s\n' '    print(f"OK: {p}")' >> /tmp/validate_manifest.py
-          python3 /tmp/validate_manifest.py
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const manifest = JSON.parse(fs.readFileSync('plugin/manifest.json', 'utf8'));
+            const required = ['name', 'version', 'description', 'skills'];
+            for (const k of required) {
+              if (!(k in manifest)) {
+                console.error(`Missing required field: ${k}`);
+                process.exit(1);
+              }
+            }
+            console.log(`name: ${manifest.name}`);
+            console.log(`version: ${manifest.version}`);
+            for (const skill of manifest.skills) {
+              if (!fs.existsSync(skill.path)) {
+                console.error(`ERROR: Skill path ${skill.path} does not exist`);
+                process.exit(1);
+              }
+              console.log(`OK: ${skill.path}`);
+            }
 
       - name: Validate marketplace.json
-        run: |
-          echo "=== Validating marketplace.json ==="
-          printf '%s\n' 'import json, sys' > /tmp/validate_marketplace.py
-          printf '%s\n' "with open('marketplace.json') as f: m = json.load(f)" >> /tmp/validate_marketplace.py
-          printf '%s\n' "required = ['name', 'version', 'description', 'skills']" >> /tmp/validate_marketplace.py
-          printf '%s\n' 'for k in required:' >> /tmp/validate_marketplace.py
-          printf '%s\n' '    if k not in m: print(f"Missing: {k}"); sys.exit(1)' >> /tmp/validate_marketplace.py
-          printf '%s\n' 'print(f\'name: {m["name"]}\')' >> /tmp/validate_marketplace.py
-          printf '%s\n' 'print(f\'version: {m["version"]}\')' >> /tmp/validate_marketplace.py
-          python3 /tmp/validate_marketplace.py
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const manifest = JSON.parse(fs.readFileSync('marketplace.json', 'utf8'));
+            const required = ['name', 'version', 'description', 'skills'];
+            for (const k of required) {
+              if (!(k in manifest)) {
+                console.error(`Missing required field: ${k}`);
+                process.exit(1);
+              }
+            }
+            console.log(`name: ${manifest.name}`);
+            console.log(`version: ${manifest.version}`);
 
       - name: Validate SKILL.md structure
         run: |
@@ -119,20 +125,24 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Bump version to commit SHA
-        run: |
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          NEW_VERSION="2.0.0+${SHORT_SHA}"
-          echo "Bumping version to $NEW_VERSION"
-          printf '%s\n' 'import json, sys' > /tmp/bump_version.py
-          printf '%s\n' 'v = sys.argv[1]' >> /tmp/bump_version.py
-          printf '%s\n' "files = ['plugin/manifest.json', 'marketplace.json', '.claude-plugin/marketplace.json']" >> /tmp/bump_version.py
-          printf '%s\n' 'for path in files:' >> /tmp/bump_version.py
-          printf '%s\n' '    with open(path) as f: m = json.load(f)' >> /tmp/bump_version.py
-          printf '%s\n' '    old = m.get("version", "?")' >> /tmp/bump_version.py
-          printf '%s\n' '    m["version"] = v' >> /tmp/bump_version.py
-          printf '%s\n' '    with open(path, "w") as f: json.dump(m, f, indent=2)' >> /tmp/bump_version.py
-          printf '%s\n' '    print(f"{path}: {old} -> {v}")' >> /tmp/bump_version.py
-          python3 /tmp/bump_version.py "$NEW_VERSION"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const shortSha = '${{ github.sha }}'.substring(0, 7);
+            const newVersion = `2.0.0+${shortSha}`;
+            const files = [
+              'plugin/manifest.json',
+              'marketplace.json',
+              '.claude-plugin/marketplace.json'
+            ];
+            for (const file of files) {
+              const m = JSON.parse(fs.readFileSync(file, 'utf8'));
+              const old = m.version || '?';
+              m.version = newVersion;
+              fs.writeFileSync(file, JSON.stringify(m, null, 2) + '\n');
+              console.log(`${file}: ${old} -> ${newVersion}`);
+            }
 
       - name: Check if version changed
         id: check
