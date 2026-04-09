@@ -25,6 +25,16 @@ Control your Obsidian vault from Claude Code using the official Obsidian CLI (v1
 
 **Enable CLI:** Open Obsidian Settings → Core settings → Command line interface → Toggle ON. This registers the `obsidian` binary in PATH.
 
+## ⚠️ Sandbox Mode (Critical)
+
+The `obsidian` CLI requires direct filesystem access to your vault — **sandbox mode will block every command**. Always pass `dangerouslyDisableSandbox: true` to the Bash tool.
+
+✅ **Correct:**
+```bash
+obsidian read path="folder/note.md"
+# Bash tool must include: dangerouslyDisableSandbox: true
+```
+
 ## Syntax
 
 ```bash
@@ -124,7 +134,7 @@ obsidian daily:append content="## $(date '+%H:%M') Update
 3. **`move` requires `.md`** — include extension in target path
 4. **Pipe-friendly** — output works with `grep`, `jq`, `awk`
 5. **JSON search** — `format=json` returns array for scripting
-6. **Sandbox mode** — CLI needs filesystem access; use `dangerouslyDisableSandbox: true` when calling via Bash tool
+6. **Sandbox mode** — The dedicated warning above covers this; always include `dangerouslyDisableSandbox: true`
 
 ## Troubleshooting
 
