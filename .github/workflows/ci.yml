@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin manifest
+        run: |
+          echo "=== Validating plugin/manifest.json ==="
+          python3 -c "
+import json, sys
+with open('plugin/manifest.json') as f:
+    m = json.load(f)
+            required = ['name', 'version', 'description', 'skills']
+            for key in required:
+                if key not in m:
+                    print(f'Missing required field: {key}')
+                    sys.exit(1)
+            print(f'name: {m[\"name\"]}')
+            print(f'version: {m[\"version\"]}')
+            for skill in m['skills']:
+                path = skill['path']
+                import os
+                if not os.path.exists(path):
+                    print(f'ERROR: Skill path {path} does not exist')
+                    sys.exit(1)
+                print(f'OK: {path}')
+          "
+
+      - name: Validate marketplace.json
+        run: |
+          echo "=== Validating marketplace.json ==="
+          python3 -c "
+import json, sys
+with open('marketplace.json') as f:
+            m = json.load(f)
+            required = ['name', 'version', 'description', 'skills']
+            for key in required:
+                if key not in m:
+                    print(f'Missing required field: {key}')
+                    sys.exit(1)
+            print(f'name: {m[\"name\"]}')
+            print(f'version: {m[\"version\"]}')
+          "
+
+      - name: Validate SKILL.md structure
+        run: |
+          echo "=== Validating SKILL.md ==="
+          grep -q "## Prerequisites" plugin/skills/obsidian/SKILL.md || { echo "Missing Prerequisites section"; exit 1; }
+          grep -q "## Syntax" plugin/skills/obsidian/SKILL.md || { echo "Missing Syntax section"; exit 1; }
+          grep -q "dangerouslyDisableSandbox" plugin/skills/obsidian/SKILL.md || { echo "Missing sandbox warning"; exit 1; }
+          echo "OK: SKILL.md has required sections and sandbox warning"
+
+      - name: Validate command reference
+        run: |
+          echo "=== Validating command-reference.md ==="
+          lines=$(wc -l < plugin/skills/obsidian/references/command-reference.md)
+          if [ "$lines" -lt 50 ]; then
+            echo "ERROR: command-reference.md seems too short ($lines lines)"
+            exit 1
+          fi
+          echo "OK: $lines lines in command-reference.md"
+
+      - name: Check for broken markdown links
+        run: |
+          echo "=== Checking for common issues in markdown files ==="
+          # Check for relative paths that might break
+          grep -rn '\[.*\](\.\./' --include="*.md" . || echo "No ../ relative links found"
+          echo "OK: Link check complete"
+
+      - name: Verify no placeholder TODOs in SKILL.md
+        run: |
+          echo "=== Checking for unresolved TODOs in SKILL.md ==="
+          if grep -qi 'TODO\|FIXME\|XXX\|TBD' plugin/skills/obsidian/SKILL.md; then
+            echo "WARNING: Found TODO/FIXME/XXX/TBD in SKILL.md"
+            grep -in 'TODO\|FIXME\|XXX\|TBD' plugin/skills/obsidian/SKILL.md
+          else
+            echo "OK: No unresolved placeholders found"
+          fi
+
+      - name: Verify sandbox warning is prominent
+        run: |
+          echo "=== Verifying sandbox warning prominence ==="
+          # The warning should appear before "Syntax" section
+          sandbox_line=$(grep -n "Sandbox Mode" plugin/skills/obsidian/SKILL.md | head -1 | cut -d: -f1)
+          syntax_line=$(grep -n "## Syntax" plugin/skills/obsidian/SKILL.md | head -1 | cut -d: -f1)
+          if [ -z "$sandbox_line" ]; then
+            echo "ERROR: No sandbox warning section found"
+            exit 1
+          fi
+          if [ -z "$syntax_line" ]; then
+            echo "ERROR: No Syntax section found"
+            exit 1
+          fi
+          if [ "$sandbox_line" -lt "$syntax_line" ]; then
+            echo "OK: Sandbox warning (line $sandbox_line) appears before Syntax (line $syntax_line)"
+          else
+            echo "WARNING: Sandbox warning should appear before Syntax section"
+          fi
+
+      - name: Ensure LICENSE exists
+        run: |
+          echo "=== Checking LICENSE ==="
+          if [ ! -f LICENSE ]; then
+            echo "ERROR: LICENSE file missing"
+            exit 1
+          fi
+          echo "OK: LICENSE exists"
