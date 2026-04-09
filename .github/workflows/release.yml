@@ -30,79 +30,72 @@ jobs:
             exit 1
           fi
 
-      - name: Update version in manifest.json
+      - name: Update version in all manifest files
         run: |
           VERSION="${{ inputs.version }}"
           VVERSION="${VERSION#v}"
-          echo "Updating manifest.json and marketplace.json to $VVERSION"
-          python3 -c "
+          echo "Updating version to $VVERSION"
+
+          python3 << 'PYEOF'
 import json
+import sys
 
-# Update plugin/manifest.json
-with open('plugin/manifest.json') as f:
-    m = json.load(f)
-m['version'] = '$VVERSION'
-with open('plugin/manifest.json', 'w') as f:
-    json.dump(m, f, indent=2)
-print('Updated plugin/manifest.json')
+version = sys.argv[1]
+files = [
+    "plugin/manifest.json",
+    "marketplace.json",
+    ".claude-plugin/marketplace.json",
+]
 
-# Update marketplace.json
-with open('marketplace.json') as f:
-    m = json.load(f)
-m['version'] = '$VVERSION'
-with open('marketplace.json', 'w') as f:
-    json.dump(m, f, indent=2)
-print('Updated marketplace.json')
-"
-
-      - name: Update version in .claude-plugin/marketplace.json
-        run: |
-          VERSION="${{ inputs.version }}"
-          VVERSION="${VERSION#v}"
-          python3 -c "
-import json
-with open('.claude-plugin/marketplace.json') as f:
-    m = json.load(f)
-m['version'] = '$VVERSION'
-with open('.claude-plugin/marketplace.json', 'w') as f:
-    json.dump(m, f, indent=2)
-print('Updated .claude-plugin/marketplace.json')
-"
+for filepath in files:
+    with open(filepath) as f:
+        m = json.load(f)
+    old = m.get("version", "?")
+    m["version"] = version
+    with open(filepath, "w") as f:
+        json.dump(m, f, indent=2)
+    print(f"{filepath}: {old} -> {version}")
+PYEOF
+        env:
+          VERSION: ${{ inputs.version }}
 
       - name: Update CHANGELOG.md
         run: |
           VERSION="${{ inputs.version }}"
           TODAY=$(date '+%Y-%m-%d')
-          echo "Updating CHANGELOG.md for $VERSION"
-          # Prepend new version entry to changelog
-          python3 -c "
+
+          python3 << 'PYEOF'
+import sys
 import re
 
-with open('CHANGELOG.md') as f:
+version = sys.argv[1]
+today = sys.argv[2]
+
+with open("CHANGELOG.md") as f:
     content = f.read()
 
-new_entry = '''## [$VERSION] - $TODAY
+new_entry = f"""## [{version}] - {today}
 
 ### Added
 
-- Release $VERSION
+- Release {version}
 
-'''
+"""
 
-# Insert after the first header line (the # Changelog line)
-lines = content.split('\n')
+lines = content.split("\n")
 insert_idx = 1
-# Find the first blank line after the header
 for i, line in enumerate(lines):
-    if i > 0 and line.strip() == '':
+    if i > 0 and line.strip() == "":
         insert_idx = i
         break
 
 lines.insert(insert_idx, new_entry)
-with open('CHANGELOG.md', 'w') as f:
-    f.write('\n'.join(lines))
-print('Updated CHANGELOG.md')
-"
+with open("CHANGELOG.md", "w") as f:
+    f.write("\n".join(lines))
+print("Updated CHANGELOG.md")
+PYEOF
+        env:
+          VERSION: ${{ inputs.version }}
 
       - name: Show diff of version files
         run: |
@@ -124,23 +117,26 @@ print('Updated CHANGELOG.md')
 
       - name: Create GitHub Release
         run: |
-          # Extract changelog section for this version
           VERSION="${{ inputs.version }}"
-          VVERSION="${VERSION#v}"
 
-          python3 -c "
+          python3 << 'PYEOF'
+import sys
 import re
-with open('CHANGELOG.md') as f:
+
+version = sys.argv[1]
+
+with open("CHANGELOG.md") as f:
     content = f.read()
 
-# Extract section for this version
-pattern = r'##\s+\[' + re.escape('$VERSION') + r'\]\s+-\s+\d{4}-\d{2}-\d{2}(.*?)(?=##\s+\[|$)'
+pattern = r"##\s+\[" + re.escape(version) + r"\]\s+-\s+\d{4}-\d{2}-\d{2}(.*?)(?=##\s+\[|$)"
 match = re.search(pattern, content, re.DOTALL)
-body = match.group(1).strip() if match else 'See CHANGELOG.md for details.'
-with open('.release_body', 'w') as f:
+body = match.group(1).strip() if match else "See CHANGELOG.md for details."
+with open(".release_body", "w") as f:
     f.write(body)
-print('Extracted release notes')
-"
+print("Extracted release notes")
+PYEOF
+        env:
+          VERSION: ${{ inputs.version }}
 
           gh release create "${{ inputs.version }}" \
             --title "${{ inputs.version }}" \
