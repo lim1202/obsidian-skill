@@ -19,7 +19,7 @@ jobs:
           script: |
             const fs = require('fs');
             const manifest = JSON.parse(fs.readFileSync('plugin/manifest.json', 'utf8'));
-            const required = ['name', 'version', 'description', 'skills'];
+            const required = ['name', 'version', 'description'];
             for (const k of required) {
               if (!(k in manifest)) {
                 console.error(`Missing required field: ${k}`);
@@ -28,13 +28,7 @@ jobs:
             }
             console.log(`name: ${manifest.name}`);
             console.log(`version: ${manifest.version}`);
-            for (const skill of manifest.skills) {
-              if (!fs.existsSync(skill.path)) {
-                console.error(`ERROR: Skill path ${skill.path} does not exist`);
-                process.exit(1);
-              }
-              console.log(`OK: ${skill.path}`);
-            }
+            console.log('OK: plugin/manifest.json');
 
       - name: Validate marketplace.json
         uses: actions/github-script@v7
@@ -51,6 +45,13 @@ jobs:
             }
             console.log(`name: ${manifest.name}`);
             console.log(`version: ${manifest.version}`);
+            for (const skill of manifest.skills) {
+              if (!fs.existsSync(skill.path)) {
+                console.error(`ERROR: Skill path ${skill.path} does not exist`);
+                process.exit(1);
+              }
+              console.log(`OK: ${skill.path}`);
+            }
 
       - name: Validate SKILL.md structure
         run: |
