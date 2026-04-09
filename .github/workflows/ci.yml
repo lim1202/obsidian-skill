@@ -115,3 +115,62 @@ with open('marketplace.json') as f:
             exit 1
           fi
           echo "OK: LICENSE exists"
+
+  bump-version:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump version to commit SHA
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          NEW_VERSION="2.0.0+${SHORT_SHA}"
+          echo "Bumping version to $NEW_VERSION"
+
+          python3 -c "
+import json
+
+files = [
+    'plugin/manifest.json',
+    'marketplace.json',
+    '.claude-plugin/marketplace.json'
+]
+
+for filepath in files:
+    with open(filepath) as f:
+        m = json.load(f)
+    old_version = m.get('version', 'unknown')
+    m['version'] = '$NEW_VERSION'
+    with open(filepath, 'w') as f:
+        json.dump(m, f, indent=2)
+    print(f'{filepath}: {old_version} -> $NEW_VERSION')
+"
+
+      - name: Check if version changed
+        id: check
+        run: |
+          if git diff --quiet; then
+            echo "No version change needed, skipping commit"
+            echo "VERSION_CHANGED=false" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION_CHANGED=true" >> $GITHUB_OUTPUT
+            echo "Changes found:"
+            git diff --stat
+          fi
+
+      - name: Commit and push version bump
+        if: steps.check.outputs.VERSION_CHANGED == 'true'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add plugin/manifest.json marketplace.json .claude-plugin/marketplace.json
+          git commit -m "chore: bump version to ${{ github.sha }}"
+          git push
+          echo "Version bumped and pushed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
